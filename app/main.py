@@ -33,7 +33,7 @@ rag = Personalized_RAG(
 )
 
 @app.get("/")
-def root():
+async def root():
     return {"message": "Welcome to Joel's Personalized RAG API 🚀"}
 
 @app.post("/ask", response_model=AskResponse)
