@@ -36,9 +36,9 @@ class AskResponse(BaseModel):
 async def root():
     return {"message": "Welcome to Joel's Personalized RAG API 🚀"}
 
-@app.post("/ask", response_model=AskResponse)
-def ask_question(request: QuestionRequest):
-    return {}
+#@app.post("/ask", response_model=AskResponse)
+#def ask_question(request: QuestionRequest):
+#    return {}
 #    try:
 #        # Generate user_id if not provided
 #        user_id = request.user_id or str(uuid4())
@@ -71,8 +71,8 @@ def reindex_data():
 
 
 
-@app.options("/ask")
-def options_ask():
-    """Handle preflight OPTIONS request explicitly (for CORS)."""
-    return {"status": "ok"}
+#@app.options("/ask")
+#def options_ask():
+#    """Handle preflight OPTIONS request explicitly (for CORS)."""
+#    return {"status": "ok"}
 
