@@ -3,9 +3,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import uuid4
-
+from dotenv import load_dotenv
 #from app.core.personalized_rag import Personalized_RAG
-
+load_dotenv()
 app = FastAPI(title="Joel's Assistant API", version="1.0")
 
 
