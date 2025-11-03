@@ -7,23 +7,29 @@ from langchain_chroma import Chroma
 
 class HFInferenceEmbeddings:
     """Wrapper to use Hugging Face Inference API as LangChain embeddings."""
-    def __init__(self, model_name: str, hf_token: str):
-        self.client = InferenceClient(provider="hf-inference", api_key=hf_token)
+    def __init__(self, model_name: str, hf_token: str, batch_size: int = 8):
+        self.client = InferenceClient(api_key=hf_token)
         self.model_name = model_name
+        self.batch_size = batch_size
+
+    def _embed_text(self, text):
+        res = self.client.feature_extraction(text, model=self.model_name)
+        emb = np.array(res, dtype=float)
+        if emb.ndim > 1:
+            emb = emb[0]
+        return emb
 
     def embed_documents(self, texts: list):
         embeddings = []
-        for text in texts:
-            res = self.client.feature_extraction(text, model=self.model_name)
-            # Ensure it's 1D array
-            emb = np.array(res)
-            if emb.ndim > 1:
-                emb = emb[0]
-            embeddings.append(emb)
+        for i in range(0, len(texts), self.batch_size):
+            batch = texts[i:i+self.batch_size]
+            for text in batch:
+                embeddings.append(self._embed_text(text))
         return embeddings
 
     def embed_query(self, text: str):
-        return self.embed_documents([text])[0]
+        return self._embed_text(text)
+
 
 class Indexer:
     def __init__(
@@ -36,6 +42,7 @@ class Indexer:
         collection_name: str = "my_text_docs",
         hf_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         hf_token: str = None,
+        batch_size: int = 8
     ):
         self.file_path = file_path
         self.urls = urls or []
@@ -45,11 +52,22 @@ class Indexer:
         self.collection_name = collection_name
         self.hf_model_name = hf_model_name
         self.hf_token = hf_token or os.environ.get("HF_TOKEN")
+        self.batch_size = batch_size
         self.vectorstore = None
+        self.embedding_model = None
 
     def is_indexed(self) -> bool:
         """Check if an existing vectorstore is already persisted."""
         return os.path.exists(self.persist_dir) and any(os.scandir(self.persist_dir))
+
+    def load_model(self):
+        if self.embedding_model is None:
+            self.embedding_model = HFInferenceEmbeddings(
+                model_name=self.hf_model_name,
+                hf_token=self.hf_token,
+                batch_size=self.batch_size
+            )
+        return self.embedding_model
 
     def load_and_split(self):
         """Load text files and URLs, then split into chunks."""
@@ -81,38 +99,31 @@ class Indexer:
         )
         return splitter.split_documents(docs)
 
-    def get_vectorstore(self):
-        """
-        Return a Chroma vectorstore — either loads an existing one or builds a new one.
-        """
-        embedding_model = HFInferenceEmbeddings(
-            model_name=self.hf_model_name,
-            hf_token=self.hf_token
+    def build_vectorstore(self, docs_splits):
+        """Build a new Chroma vectorstore and persist it."""
+        vectorstore = Chroma.from_documents(
+            documents=docs_splits,
+            embedding=self.load_model(),
+            collection_name=self.collection_name,
+            persist_directory=self.persist_dir,
         )
+        print("✅ Indexing completed and persisted.")
+        self.vectorstore = vectorstore
+        return vectorstore
 
+    def get_vectorstore(self):
+        """Return a Chroma vectorstore — either loads an existing one or builds a new one."""
+        self.load_model()  # Ensure embedding model is initialized
         if self.is_indexed():
             print("📂 Loading existing index...")
             self.vectorstore = Chroma(
                 collection_name=self.collection_name,
                 persist_directory=self.persist_dir,
-                embedding_function=embedding_model,
+                embedding_function=self.embedding_model,
             )
         else:
             print("⚙️ Building new index...")
             docs_splits = self.load_and_split()
-            self.vectorstore = self.build_vectorstore(docs_splits, embedding_model)
+            self.vectorstore = self.build_vectorstore(docs_splits)
 
         return self.vectorstore
-
-    def build_vectorstore(self, docs_splits, embedding_model):
-        """Build a new Chroma vectorstore and persist it."""
-        vectorstore = Chroma.from_documents(
-            documents=docs_splits,
-            embedding=embedding_model,
-            collection_name=self.collection_name,
-            persist_directory=self.persist_dir,
-        )
-
-        print("✅ Indexing completed and persisted.")
-        self.vectorstore = vectorstore
-        return vectorstore
