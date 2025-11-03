@@ -7,13 +7,13 @@ from app.core.personalized_rag import Personalized_RAG
 app = FastAPI(title="Joel's Assistant API", version="1.0")
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],         
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+#app.add_middleware(
+#    CORSMiddleware,
+#    allow_origins=["*"],         
+#    allow_credentials=True,
+#    allow_methods=["*"],
+#    allow_headers=["*"],
+#)
 
 class QuestionRequest(BaseModel):
     user_id: Optional[str] = None
@@ -64,7 +64,7 @@ def reindex_data():
 
 
 
-@app.options("/ask")
-def options_ask():
-    """Handle preflight OPTIONS request explicitly (for CORS)."""
-    return {"status": "ok"}
+#@app.options("/ask")
+#def options_ask():
+#    """Handle preflight OPTIONS request explicitly (for CORS)."""
+#    return {"status": "ok"}
