@@ -1,11 +1,18 @@
 import os
 from langchain_community.document_loaders import TextLoader, WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 
 class Indexer:
-    def __init__(self, file_path: str, urls: list = None, persist_dir: str = "./chroma_db", chunk_size: int = 250, chunk_overlap: int = 0):
+    def __init__(
+        self,
+        file_path: str,
+        urls: list = None,
+        persist_dir: str = "./chroma_db",
+        chunk_size: int = 250,
+        chunk_overlap: int = 0,
+    ):
         self.file_path = file_path
         self.urls = urls or []
         self.persist_dir = persist_dir
@@ -38,15 +45,18 @@ class Indexer:
         # Split all documents into chunks
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap
+            chunk_overlap=self.chunk_overlap,
         )
         return text_splitter.split_documents(docs)
 
     def build_vectorstore(self, docs_splits):
+
+        embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+
         self.vectorstore = Chroma.from_documents(
             documents=docs_splits,
-            embedding=HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device": "cpu"}),
+            embedding=embedding_model,
             collection_name="my_text_docs",
-            persist_directory=self.persist_dir
+            persist_directory=self.persist_dir,
         )
         return self.vectorstore
