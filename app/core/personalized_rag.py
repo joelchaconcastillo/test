@@ -1,7 +1,7 @@
 #import app.config
-from app.core.indexer import Indexer
-from app.core.retriever import Retriever
-from app.core.llm_agent import LLM_Agent
+#from app.core.indexer import Indexer
+#from app.core.retriever import Retriever
+#from app.core.llm_agent import LLM_Agent
 
 
 class Personalized_RAG:
