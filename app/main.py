@@ -6,8 +6,10 @@ from uuid import uuid4
 
 from app.core.personalized_rag import Personalized_RAG
 
-app = FastAPI(title="Joel's Assistant API", version="1.0")
-
+# ----------------------------------------------------
+# Initialize FastAPI app
+# ----------------------------------------------------
+app = FastAPI(title="Joel's Assistant API", version="1.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ----------------------------------------------------
+# Request & Response Schemas
+# ----------------------------------------------------
 class QuestionRequest(BaseModel):
     user_id: Optional[str] = None
     question: str
@@ -25,28 +30,48 @@ class AskResponse(BaseModel):
     answer: str
     documents: Optional[List[str]] = None
 
-
+# ----------------------------------------------------
+# Initialize the RAG system
+# ----------------------------------------------------
 rag = Personalized_RAG(
     file_path="data/user_information/",
     user_id="default_user",
     persist_dir="./chroma_db",
 )
 
+# ----------------------------------------------------
+# API Endpoints
+# ----------------------------------------------------
 @app.get("/")
 async def root():
     return {"message": "Welcome to Joel's Personalized RAG API 🚀"}
 
+@app.get("/status")
+async def status():
+    """Check if the system has an existing index."""
+    indexed = rag.indexer.is_indexed()
+    return {"indexed": indexed, "user_id": rag.user_id}
+
 @app.post("/ask", response_model=AskResponse)
 def ask_question(request: QuestionRequest):
+    """
+    Ask the assistant a question.
+    Will return a message if no index exists yet.
+    """
     try:
-        # Generate user_id if not provided
         user_id = request.user_id or str(uuid4())
         rag.user_id = user_id
 
-        # Process the question
+        # Ensure the index is ready
+        if not rag.vectorstore:
+            if not rag.indexer.is_indexed():
+                raise HTTPException(status_code=400, detail="Index not found. Please run /reindex first.")
+            rag.index()  # Load existing persisted index
+
+        # Ask the question
         answer = rag.ask(request.question)
 
-        # Retrieve the documents used in the retrieval step, if available
+        # Get retrieved documents (if retriever stores them)
         docs_retrieved = getattr(rag.retriever, "last_retrieved_docs", [])
 
         return AskResponse(
@@ -54,23 +79,23 @@ def ask_question(request: QuestionRequest):
             documents=[doc.page_content for doc in docs_retrieved] if docs_retrieved else [],
         )
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing question: {e}")
 
-
 @app.post("/reindex")
 def reindex_data():
+    """
+    Manually trigger full reindexing of documents.
+    """
     try:
-        docs_splits = rag.indexer.load_and_split()
-        rag.vectorstore = rag.indexer.build_vectorstore(docs_splits)
-        return {"status": "success", "message": "Reindexing completed."}
+        rag.index()  # uses the new index() method
+        return {"status": "success", "message": "Reindexing completed successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during reindexing: {e}")
 
-
-
 @app.options("/ask")
 def options_ask():
-    """Handle preflight OPTIONS request explicitly (for CORS)."""
+    """Handle preflight OPTIONS requests (for CORS)."""
     return {"status": "ok"}
-
