@@ -25,12 +25,12 @@ class AskResponse(BaseModel):
     answer: str
     documents: Optional[List[str]] = None
 
-
-rag = Personalized_RAG(
-    file_path="data/user_information/",
-    user_id="default_user",
-    persist_dir="./chroma_db",
-)
+rag = None
+#rag = Personalized_RAG(
+#    file_path="data/user_information/",
+#    user_id="default_user",
+#    persist_dir="./chroma_db",
+#)
 
 @app.get("/")
 async def root():
