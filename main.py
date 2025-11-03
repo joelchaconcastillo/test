@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
 #from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
-from uuid import uuid4
+#from pydantic import BaseModel
+#from typing import List, Optional
+#from uuid import uuid4
 
-from app.core.personalized_rag import Personalized_RAG
+#from app.core.personalized_rag import Personalized_RAG
 
 app = FastAPI(title="Joel's Assistant API", version="1.0")
 
@@ -17,13 +17,13 @@ app = FastAPI(title="Joel's Assistant API", version="1.0")
 #    allow_headers=["*"],
 #)
 
-class QuestionRequest(BaseModel):
-    user_id: Optional[str] = None
-    question: str
+#class QuestionRequest(BaseModel):
+#    user_id: Optional[str] = None
+#    question: str
 
-class AskResponse(BaseModel):
-    answer: str
-    documents: Optional[List[str]] = None
+#class AskResponse(BaseModel):
+ #   answer: str
+#    documents: Optional[List[str]] = None
 
 
 #rag = Personalized_RAG(
@@ -59,9 +59,9 @@ async def root():
 #        raise HTTPException(status_code=500, detail=f"Error processing question: {e}")
 
 
-@app.post("/reindex")
-def reindex_data():
-    return {}
+#@app.post("/reindex")
+#def reindex_data():
+#    return {}
 #    try:
 #        docs_splits = rag.indexer.load_and_split()
 #        rag.vectorstore = rag.indexer.build_vectorstore(docs_splits)
