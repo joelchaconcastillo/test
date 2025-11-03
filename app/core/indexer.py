@@ -2,8 +2,8 @@ import os
 import numpy as np
 from huggingface_hub import InferenceClient
 #from langchain_community.document_loaders import TextLoader, WebBaseLoader
-#from langchain_text_splitters import RecursiveCharacterTextSplitter
-#from langchain_chroma import Chroma
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_chroma import Chroma
 
 class HFInferenceEmbeddings:
     """Wrapper to use Hugging Face Inference API as LangChain embeddings."""
